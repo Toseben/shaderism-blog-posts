@@ -48,17 +48,28 @@ class AbstractApplication {
 
     onWindowResize() {
 
-        this._camera.aspect = window.innerWidth / window.innerHeight;
-        this._camera.updateProjectionMatrix();
+      let width = window.innerWidth;
+      let height = window.innerHeight;
 
-        this._renderer.setSize( window.innerWidth, window.innerHeight );
+      this._camera.aspect = width / height;
+      this._camera.updateProjectionMatrix();
+
+      this._renderer.setSize( width, height );
+
+      // Set sizes
+      if (this.params.useDoF) {
+        this.dof.rtTextureColor.setSize( width, height );
+        this.dof.rtTextureDepth.setSize( width, height );
+        this.dof.bokeh_uniforms[ "textureWidth" ].value = width;
+        this.dof.bokeh_uniforms[ "textureHeight" ].value = height;
+      };
 
     }
 
     animate(timestamp) {
         requestAnimationFrame( this.animate.bind(this) );
 
-        //this._controls.update();
+        this._controls.update();
         this._renderer.render( this._scene, this._camera );
 
     }
