@@ -4,10 +4,7 @@ import * as THREE from 'three'
 import dat from 'dat-gui'
 import WAGNER from '@superguigui/wagner/'
 import AbstractApplication from 'views/AbstractApplication'
-import BoxBlurPass from '@superguigui/wagner/src/passes/box-blur/BoxBlurPass'
 import FXAAPass from '@superguigui/wagner/src/passes/fxaa/FXAAPass'
-import ZoomBlurPassfrom from '@superguigui/wagner/src/passes/zoom-blur/ZoomBlurPass'
-import MultiPassBloomPass from '@superguigui/wagner/src/passes/bloom/MultiPassBloomPass'
 
 class Main extends AbstractApplication {
 
@@ -17,9 +14,7 @@ class Main extends AbstractApplication {
 
     this.params = {
       usePostProcessing: true,
-      useFXAA: true,
-      useBlur: false,
-      useBloom: true
+      useFXAA: false,
     };
 
     const light = new THREE.AmbientLight(0xFFFFFF, 1);
@@ -48,11 +43,6 @@ class Main extends AbstractApplication {
     this._renderer.autoClearColor = true;
     this.composer = new WAGNER.Composer(this._renderer);
     this.fxaaPass = new FXAAPass();
-    this.boxBlurPass = new BoxBlurPass(3, 3);
-    this.bloomPass = new MultiPassBloomPass({
-      blurAmount: 2,
-      applyZoomBlur: true
-    });
 
   }
 
@@ -61,8 +51,6 @@ class Main extends AbstractApplication {
     const gui = new dat.GUI();
     gui.add(this.params, 'usePostProcessing');
     gui.add(this.params, 'useFXAA');
-    gui.add(this.params, 'useBlur');
-    gui.add(this.params, 'useBloom');
     return gui;
 
   }
@@ -75,8 +63,6 @@ class Main extends AbstractApplication {
       this.composer.reset();
       this.composer.render(this._scene, this._camera);
       if (this.params.useFXAA) this.composer.pass(this.fxaaPass);
-      if (this.params.useBlur) this.composer.pass(this.boxBlurPass);
-      if (this.params.useBloom) this.composer.pass(this.bloomPass);
       this.composer.toScreen();
     }
     else {
