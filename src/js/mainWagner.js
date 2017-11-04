@@ -16,13 +16,11 @@ class Main extends AbstractApplication {
       usePostProcessing: true,
       useDoF: true,
       dofController: {
-				enabled: true,
-
-				autoFocus: true,
-				bboxVisible: false,
+				autoFocus: false,
+				bboxHelper: false,
 				focusHelpers: false,
 
-				jsDepthCalculation: false,
+        jsDepthCalculation: false,
 				shaderFocus: false,
 
 				fstop: 18,
@@ -42,6 +40,7 @@ class Main extends AbstractApplication {
 				focalLength: 35,
 				noise: true,
 				pentagon: false,
+
 				dithering: 0.001,
 
 				rings: 3,
@@ -91,7 +90,7 @@ class Main extends AbstractApplication {
       this.dof.rtTextureDepth = new THREE.WebGLRenderTarget( width, height, pars );
       this.dof.rtTextureColor = new THREE.WebGLRenderTarget( width, height, pars );
 
-      let bokeh_shader = THREE.BokehShader;  
+      let bokeh_shader = THREE.BokehShader;
       this.dof.bokeh_uniforms = THREE.UniformsUtils.clone( bokeh_shader.uniforms );
       this.dof.bokeh_uniforms[ "tColor" ].value = this.dof.rtTextureColor.texture;
       this.dof.bokeh_uniforms[ "tDepth" ].value = this.dof.rtTextureDepth.texture;
@@ -120,6 +119,48 @@ class Main extends AbstractApplication {
 
     const gui = new dat.GUI();
     gui.add(this.params, 'usePostProcessing');
+
+    if (this.params.useDoF) {
+      const _this = this;
+  		let matChanger = function() {
+  			for (var e in _this.params.dofController) {
+  				if (e in _this.dof.bokeh_uniforms) {
+			      _this.dof.bokeh_uniforms[ e ].value = _this.params.dofController[ e ];
+          }
+				}
+  			_this.dof.bokeh_uniforms[ 'znear' ].value = _this._camera.near;
+  			_this.dof.bokeh_uniforms[ 'zfar' ].value = _this._camera.far;
+
+        _this.dof.materialBokeh.defines.RINGS = _this.params.dofController.rings;
+        _this.dof.materialBokeh.defines.SAMPLES = _this.params.dofController.samples;
+        _this.dof.materialBokeh.needsUpdate = true;
+  		};
+
+      matChanger();
+
+      gui.add( this.params.dofController, "autoFocus" ).onChange( matChanger );
+      gui.add( this.params.dofController, "bboxHelper" ).onChange( matChanger );
+      gui.add( this.params.dofController, "focusHelpers" ).onChange( matChanger );
+      gui.add( this.params.dofController, "fstop", 0.1, 22, 0.001 ).onChange( matChanger );
+      gui.add( this.params.dofController, "maxblur", 0.0, 5.0, 0.025 ).onChange( matChanger );
+      gui.add( this.params.dofController, "showFocus" ).onChange( matChanger );
+      // Listen on
+      gui.add( this.params.dofController, "focalDepth", 0.0, 200.0 ).listen().onChange( matChanger );
+      gui.add( this.params.dofController, "manualdof" ).onChange( matChanger );
+      gui.add( this.params.dofController, "vignetting" ).onChange( matChanger );
+      gui.add( this.params.dofController, "depthblur" ).onChange( matChanger );
+      gui.add( this.params.dofController, "threshold", 0, 1, 0.001 ).onChange( matChanger );
+      gui.add( this.params.dofController, "gain", 0, 100, 0.001 ).onChange( matChanger );
+      gui.add( this.params.dofController, "bias", 0,3, 0.001 ).onChange( matChanger );
+      gui.add( this.params.dofController, "fringe", 0, 5, 0.001 ).onChange( matChanger );
+      gui.add( this.params.dofController, "focalLength", 16, 80, 0.001 ).onChange( matChanger );
+      gui.add( this.params.dofController, "noise" ).onChange( matChanger );
+      gui.add( this.params.dofController, "dithering", 0, 0.001, 0.0001 ).onChange( matChanger );
+      gui.add( this.params.dofController, "pentagon" ).onChange( matChanger );
+      gui.add( this.params.dofController, "rings", 1, 8).step(1).onChange( matChanger );
+      gui.add( this.params.dofController, "samples", 1, 13).step(1).onChange( matChanger );
+    }
+
     return gui;
 
   }
@@ -128,7 +169,7 @@ class Main extends AbstractApplication {
 
     super.animate();
 
-    if (this.params.usePostProcessing) {
+    if (this.params.usePostProcessing && this.params.useDoF) {
       this._renderer.clear();
 
       this._renderer.render(this._scene, this._camera, this.dof.rtTextureColor, true);

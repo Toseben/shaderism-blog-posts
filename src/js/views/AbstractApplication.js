@@ -18,8 +18,8 @@ class AbstractApplication {
 
         this._controls = new THREE.OrbitControls( this._camera, this._renderer.domElement );
         //this._controls.addEventListener( 'change', render ); // add this only if there is no animation loop (requestAnimationFrame)
-        // this._controls.enableDamping = true;
-        // this._controls.dampingFactor = 0.25;
+        this._controls.enableDamping = true;
+        this._controls.dampingFactor = 0.25;
         // this._controls.enableZoom = false;
 
         window.addEventListener( 'resize', this.onWindowResize.bind(this), false );
