@@ -1,3 +1,4 @@
+// Finds the index of the smallest value in an array
 export function indexOfSmallest(a) {
  var lowest = 0;
  for (var i = 1; i < a.length; i++) {

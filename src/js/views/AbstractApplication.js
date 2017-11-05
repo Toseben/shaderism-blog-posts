@@ -14,14 +14,13 @@ class AbstractApplication {
 
         this._renderer = new THREE.WebGLRenderer();
         this._renderer.setClearColor(0x2a363b, 1);
-        // For rendering helpers on top in separate scene
+        // For rendering helpers on top in separate scene, doesn't delete what was renderer previously
         this._renderer.autoClear = false;
         this._renderer.setPixelRatio( window.devicePixelRatio );
         this._renderer.setSize( window.innerWidth, window.innerHeight );
         document.body.appendChild( this._renderer.domElement );
 
         this._controls = new THREE.OrbitControls( this._camera, this._renderer.domElement );
-        //this._controls.addEventListener( 'change', render ); // add this only if there is no animation loop (requestAnimationFrame)
         this._controls.enableDamping = true;
         this._controls.dampingFactor = 0.25;
         // this._controls.enableZoom = false;
@@ -60,7 +59,7 @@ class AbstractApplication {
 
       this._renderer.setSize( width, height );
 
-      // Set sizes
+      // Need to remember to resize buffers and update uniforms when window size updates
       if (this.params.useDoF) {
         this.dof.rtTextureColor.setSize( width, height );
         this.dof.rtTextureDepth.setSize( width, height );

@@ -26,7 +26,7 @@ class Main extends AbstractApplication {
 				shaderFocus: false,
 
 				fstop: 8.0,
-				maxblur: 8.0,
+				maxblur: 4.0,
 
 				showFocus: false,
 				focalDepth: 50.0,
@@ -45,7 +45,7 @@ class Main extends AbstractApplication {
 
 				dithering: 0.001,
 
-				rings: 3,
+				rings: 4,
 				samples: 6
 			},
     };
@@ -54,57 +54,36 @@ class Main extends AbstractApplication {
     const light = new THREE.AmbientLight(0xe84a5f, 0.75);
     this._scene.add(light);
 
-    const directionalLight = new THREE.DirectionalLight(0xfecea8, 0.75);
-    directionalLight.position.set(2, 4, 1);
-    this._scene.add(directionalLight);
+    const dirLight_001 = new THREE.DirectionalLight(0xfecea8, 0.75);
+    dirLight_001.position.set(2, 4, 1);
+    this._scene.add(dirLight_001);
 
-    const directionalLightTwo = new THREE.DirectionalLight(0xff847c, 0.25);
-    directionalLightTwo.position.set(-2, -4, -1);
-    this._scene.add(directionalLightTwo);
+    const dirLight_002 = new THREE.DirectionalLight(0xff847c, 0.25);
+    dirLight_002.position.set(-2, -4, -1);
+    this._scene.add(dirLight_002);
 
     this.sceneObjects = new THREE.Group;
     this._scene.add(this.sceneObjects);
 
-    let texture = new THREE.TextureLoader().load( 'assets/textures/crate.gif' );
-    this.material = new THREE.MeshPhongMaterial({ map: texture });
-
-    let c = this.addCube();
-    this.sceneObjects.add(c);
-    c.visible = false;
-
     let cubeDivs = 4;
-    var scatterCube = new THREE.BoxGeometry( 100, 100, 100, cubeDivs, cubeDivs, cubeDivs );
+    let scatterBox = new THREE.BoxGeometry( 100, 100, 100, cubeDivs, cubeDivs, cubeDivs );
+    let scatterMesh = this.sceneObjects = new THREE.Mesh(scatterBox, new THREE.MeshBasicMaterial());
 
-    this.cubes = [];
-    for (let i = 0; i < scatterCube.vertices.length; i++) {
-      let scatterPos = scatterCube.vertices[i];
+    // Scatter object on each point on our scatterBox
+    for (let i = 0; i < scatterBox.vertices.length; i++) {
+      let scatterPos = scatterBox.vertices[i];
       let scatterMesh = new THREE.Mesh( new THREE.BoxGeometry(1, 5, 1), new THREE.MeshLambertMaterial({color: 0xFFFFFF}));
       scatterMesh.position.set(scatterPos.x, scatterPos.y, scatterPos.z);
-      this.cubes.push(scatterMesh);
       this._scene.add(scatterMesh);
     }
 
-
+    // Functions for initialising the scene
     this.initPostprocessing();
     this.initGui();
-    this.findClosestPoint();
+    this.findFocusPoint();
 
+    // Render function
     this.animate();
-
-  }
-
-  // Not really needed now because of the simple geometry
-  addCube() {
-
-    let cube = new THREE.Mesh(new THREE.BoxGeometry(100, 100, 100), this.material);
-    return cube;
-
-  }
-
-  createGeometry() {
-
-    let cube = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), this.material);
-    return cube;
 
   }
 
@@ -205,7 +184,7 @@ class Main extends AbstractApplication {
 
   }
 
-  findClosestPoint() {
+  findFocusPoint() {
     let focusObject = this.sceneObjects;
 
     // Create Box3 object (aka bounding box) around our focusObject
@@ -220,6 +199,7 @@ class Main extends AbstractApplication {
     let bboxMesh = new THREE.Mesh( bboxGeo, bboxMat );
     bboxMesh.visible = this.params.dofController.bboxHelper;
     bboxMesh.position.copy( focusObject.position );
+    bboxMesh.name = 'bboxMesh';
     this._scene.add( bboxMesh );
 
     // Focus Helpers
@@ -328,14 +308,19 @@ class Main extends AbstractApplication {
 
     }
 
-
+    // Render loops
     if (this.params.usePostProcessing && this.params.useDoF) {
+      // Wireframe bboxHelper
+      let bboxMesh = this._scene.getObjectByName('bboxMesh');
+
       this._renderer.clear();
 
       this._renderer.render(this._scene, this._camera, this.dof.rtTextureColor, true);
 
+      bboxMesh.visible = false;
       this._scene.overrideMaterial = this.dof.material_depth;
       this._renderer.render(this._scene, this._camera, this.dof.rtTextureDepth, true);
+      bboxMesh.visible = this.params.dofController.bboxHelper;
 
       this._renderer.render(this.dof.scene, this.dof.camera);
       this._scene.overrideMaterial = null;
