@@ -1,6 +1,7 @@
 // forked from https://github.com/superguigui/Wagner/blob/master/example/index.js
 
 import * as THREE from 'three'
+import * as utils from './utils/utils'
 import dat from 'dat-gui'
 import WAGNER from '@superguigui/wagner/'
 import AbstractApplication from 'views/AbstractApplication'
@@ -208,6 +209,7 @@ class Main extends AbstractApplication {
       let colorIdx = Math.floor(id / 2);
       let helperMat = new THREE.MeshBasicMaterial({ color: colors[colorIdx] });
       let helperCube = new THREE.Mesh( helperGeo, helperMat );
+      helperCube.name = 'helperCube_' + id;
       dofHelperGroup.add( helperCube );
     }
 
@@ -263,7 +265,19 @@ class Main extends AbstractApplication {
           distanceArray.push(distance);
         };
 
-        minDistance = Math.min.apply(Math, distanceArray);
+        let idxSmallest = utils.indexOfSmallest(distanceArray);
+        let minDistance = distanceArray[idxSmallest];
+        let helperCubes = this.dof.dofHelperGroup.children;
+        let focusPoint = helperCubes[idxSmallest];
+
+        for ( let id in helperCubes ) {
+          if (focusPoint == helperCubes[id]) {
+            helperCubes[id].scale.set(3, 3, 3);
+          } else {
+            helperCubes[id].scale.set(1, 1, 1);
+          }
+        }
+
       }
       // END FINDING CLOSEST POINT
 
