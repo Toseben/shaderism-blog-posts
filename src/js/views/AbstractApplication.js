@@ -7,11 +7,13 @@ class AbstractApplication {
     constructor(){
 
         this._camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
-        this._camera.position.z = 200;
+        this._camera.position.set(55, 55, 55);
+        this._camera.lookAt(new THREE.Vector3(0, 0, 0));
 
         this._scene = new THREE.Scene();
 
         this._renderer = new THREE.WebGLRenderer();
+        this._renderer.setClearColor(0x2a363b, 1);
         // For rendering helpers on top in separate scene
         this._renderer.autoClear = false;
         this._renderer.setPixelRatio( window.devicePixelRatio );

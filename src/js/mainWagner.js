@@ -15,17 +15,17 @@ class Main extends AbstractApplication {
 
     // All the default settings
     this.params = {
-      usePostProcessing: false,
+      usePostProcessing: true,
       useDoF: true,
       dofController: {
 				autoFocus: true,
 				bboxHelper: true,
-				focusHelpers: true,
+				focusHelpers: false,
 
         jsDepthCalculation: false,
 				shaderFocus: false,
 
-				fstop: 12.0,
+				fstop: 8.0,
 				maxblur: 8.0,
 
 				showFocus: false,
@@ -34,33 +34,56 @@ class Main extends AbstractApplication {
 				vignetting: false,
 				depthblur: false,
 
-				threshold: 0.5,
-				gain: 2.0,
-				bias: 0.5,
-				fringe: 2.0,
+				threshold: 1.0,
+				gain: 0.0,
+				bias: 0.0,
+				fringe: 4.0,
 
 				focalLength: 60,
-				noise: true,
+				noise: false,
 				pentagon: false,
 
 				dithering: 0.001,
 
-				rings: 4,
-				samples: 4
+				rings: 3,
+				samples: 6
 			},
     };
 
     // Build up a basic example scene
-    const light = new THREE.AmbientLight(0xFFFFFF, 1);
+    const light = new THREE.AmbientLight(0xe84a5f, 0.75);
     this._scene.add(light);
+
+    const directionalLight = new THREE.DirectionalLight(0xfecea8, 0.75);
+    directionalLight.position.set(2, 4, 1);
+    this._scene.add(directionalLight);
+
+    const directionalLightTwo = new THREE.DirectionalLight(0xff847c, 0.25);
+    directionalLightTwo.position.set(-2, -4, -1);
+    this._scene.add(directionalLightTwo);
 
     this.sceneObjects = new THREE.Group;
     this._scene.add(this.sceneObjects);
 
     let texture = new THREE.TextureLoader().load( 'assets/textures/crate.gif' );
     this.material = new THREE.MeshPhongMaterial({ map: texture });
+
     let c = this.addCube();
     this.sceneObjects.add(c);
+    c.visible = false;
+
+    let cubeDivs = 4;
+    var scatterCube = new THREE.BoxGeometry( 100, 100, 100, cubeDivs, cubeDivs, cubeDivs );
+
+    this.cubes = [];
+    for (let i = 0; i < scatterCube.vertices.length; i++) {
+      let scatterPos = scatterCube.vertices[i];
+      let scatterMesh = new THREE.Mesh( new THREE.BoxGeometry(1, 5, 1), new THREE.MeshLambertMaterial({color: 0xFFFFFF}));
+      scatterMesh.position.set(scatterPos.x, scatterPos.y, scatterPos.z);
+      this.cubes.push(scatterMesh);
+      this._scene.add(scatterMesh);
+    }
+
 
     this.initPostprocessing();
     this.initGui();
@@ -74,6 +97,13 @@ class Main extends AbstractApplication {
   addCube() {
 
     let cube = new THREE.Mesh(new THREE.BoxGeometry(100, 100, 100), this.material);
+    return cube;
+
+  }
+
+  createGeometry() {
+
+    let cube = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), this.material);
     return cube;
 
   }
@@ -186,11 +216,11 @@ class Main extends AbstractApplication {
     let bboxSize = bbox.getSize();
     let bboxGeo = this.dof.bboxGeo = new THREE.BoxGeometry( bboxSize.x, bboxSize.y, bboxSize.z );
 
-    let bboxMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+    let bboxMat = new THREE.MeshBasicMaterial({ color: 0x99b898, wireframe: true });
     let bboxMesh = new THREE.Mesh( bboxGeo, bboxMat );
     bboxMesh.visible = this.params.dofController.bboxHelper;
     bboxMesh.position.copy( focusObject.position );
-    // this._scene.add( bboxMesh );
+    this._scene.add( bboxMesh );
 
     // Focus Helpers
     let dofHelperGroup = this.dof.dofHelperGroup = new THREE.Group;
@@ -211,7 +241,6 @@ class Main extends AbstractApplication {
       let colorIdx = Math.floor(id / 2);
       let helperMat = new THREE.SpriteMaterial( { map: spriteMap, color: colors[colorIdx] } );
       let helperCube = new THREE.Sprite( helperMat );
-      helperCube.scale.set(25, 25, 25);
       helperCube.name = 'helperCube_' + id;
       dofHelperGroup.add( helperCube );
     }
@@ -288,11 +317,11 @@ class Main extends AbstractApplication {
         // Hightlight the helper for focusPoint
         for ( let id in helperCubes ) {
           if (focusPoint == helperCubes[id]) {
-            helperCubes[id].scale.set(50, 50, 50);
+            helperCubes[id].scale.set(40, 40, 40);
             helperCubes[id].material.opacity = 1.0;
           } else {
-            helperCubes[id].scale.set(25, 25, 25);
-            helperCubes[id].material.opacity = 0.5;
+            helperCubes[id].scale.set(20, 20, 20);
+            helperCubes[id].material.opacity = 0.25;
           }
         }
       }
