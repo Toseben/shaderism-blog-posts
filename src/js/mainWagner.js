@@ -197,18 +197,20 @@ class Main extends AbstractApplication {
     this._scene.add( dofHelperGroup );
 
     let colors = [
-      0xff0000,
-      0x00ff00,
-      0x0000ff,
+      0xe74c3c,
+      0x2ecc71,
+      0x3498db,
     ];
 
     let helperGeo = new THREE.BoxGeometry( 10, 10, 10 );
+    let spriteMap = new THREE.TextureLoader().load( "assets/textures/focusPoint.png" );
 
     // Run for every other face (two triangles per quad)
     for ( let id = 0; id < bboxGeo.faces.length / 2; id += 1 ) {
       let colorIdx = Math.floor(id / 2);
-      let helperMat = new THREE.MeshBasicMaterial({ color: colors[colorIdx] });
-      let helperCube = new THREE.Mesh( helperGeo, helperMat );
+      let helperMat = new THREE.SpriteMaterial( { map: spriteMap, color: colors[colorIdx] } );
+      let helperCube = new THREE.Sprite( helperMat );
+      helperCube.scale.set(25, 25, 25);
       helperCube.name = 'helperCube_' + id;
       dofHelperGroup.add( helperCube );
     }
@@ -272,9 +274,11 @@ class Main extends AbstractApplication {
 
         for ( let id in helperCubes ) {
           if (focusPoint == helperCubes[id]) {
-            helperCubes[id].scale.set(3, 3, 3);
+            helperCubes[id].scale.set(50, 50, 50);
+            helperCubes[id].material.opacity = 1.0;
           } else {
-            helperCubes[id].scale.set(1, 1, 1);
+            helperCubes[id].scale.set(25, 25, 25);
+            helperCubes[id].material.opacity = 0.5;
           }
         }
 
