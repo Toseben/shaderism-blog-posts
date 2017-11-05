@@ -25,11 +25,11 @@ class Main extends AbstractApplication {
         jsDepthCalculation: false,
 				shaderFocus: false,
 
-				fstop: 2.2,
-				maxblur: 1.0,
+				fstop: 12.0,
+				maxblur: 8.0,
 
 				showFocus: false,
-				focalDepth: 2.8,
+				focalDepth: 50.0,
 				manualdof: false,
 				vignetting: false,
 				depthblur: false,
@@ -37,15 +37,15 @@ class Main extends AbstractApplication {
 				threshold: 0.5,
 				gain: 2.0,
 				bias: 0.5,
-				fringe: 0.7,
+				fringe: 2.0,
 
-				focalLength: 35,
+				focalLength: 60,
 				noise: true,
 				pentagon: false,
 
 				dithering: 0.001,
 
-				rings: 3,
+				rings: 4,
 				samples: 4
 			},
     };
@@ -190,11 +190,12 @@ class Main extends AbstractApplication {
     let bboxMesh = new THREE.Mesh( bboxGeo, bboxMat );
     bboxMesh.visible = this.params.dofController.bboxHelper;
     bboxMesh.position.copy( focusObject.position );
-    this._scene.add( bboxMesh );
+    // this._scene.add( bboxMesh );
 
     // Focus Helpers
     let dofHelperGroup = this.dof.dofHelperGroup = new THREE.Group;
-    this._scene.add( dofHelperGroup );
+    // Dont need to add this to other scene actually
+    // this._scene.add( dofHelperGroup );
 
     let colors = [
       0xe74c3c,
@@ -215,28 +216,34 @@ class Main extends AbstractApplication {
       dofHelperGroup.add( helperCube );
     }
 
+    // Scene for helpers to be able to render on top of other geometry
+    this.dof.helperScene = new THREE.Scene();
+    this.dof.helperScene.add(dofHelperGroup);
+
+
   }
 
   animate() {
 
     super.animate();
 
+    // Find closest point on bounding box if AutoFocus is on
     if (this.params.dofController.autoFocus) {
-      // START FINDING CLOSEST POINT
       let bbox = this.dof.bbox;
       let bboxGeo = this.dof.bboxGeo;
       let minDistance = 0.0;
 
+      // Wait for Box3 to be generated
       if (bbox) {
         let distanceArray = [];
         let camPos = this._camera.position;
 
-        // LOOP FACES
+        // For every other face (because quad has two triangles)
         for ( let id = 0; id < bboxGeo.faces.length; id += 2 ) {
           let face = bboxGeo.faces[id];
           let normal = face.normal;
 
-          // FACE CENTROID
+          // Finding the centroid of the face
           var vertices = bboxGeo.vertices;
           var v1 = vertices[ face.a ];
           var v2 = vertices[ face.b ];
@@ -247,7 +254,8 @@ class Main extends AbstractApplication {
           facePos.y = ( v1.y + v2.y + v3.y ) / 3;
           facePos.z = ( v1.z + v2.z + v3.z ) / 3;
 
-          // = X
+          // Calculating the closest point to camera on same plane as bounding box
+          // Clamping to the same distance as Box3
           let offsetMult = new THREE.Vector3( Math.abs(normal.x), Math.abs(normal.y), Math.abs(normal.z) );
           let offset = facePos.multiply( offsetMult );
           let offsetScalar = offset.x + offset.y + offset.z;
@@ -258,20 +266,26 @@ class Main extends AbstractApplication {
           let point = new THREE.Vector3( camPos.x + normal.x * t, camPos.y + normal.y * t, camPos.z + normal.z * t );
           point.clamp(bbox.min, bbox.max);
 
-          // SET HELPER POS
+          // Update helper position to reflect the closest point found
           let helperCube = this.dof.dofHelperGroup.children[ id / 2 ];
           helperCube.position.set( point.x, point.y, point.z );
           helperCube.visible = this.params.dofController.focusHelpers;
 
+          // Push the distances to array for finding the smallest
           let distance = helperCube.position.distanceTo(camPos);
           distanceArray.push(distance);
         };
 
+        // Find the smallest value out of each face and update shader uniforms
         let idxSmallest = utils.indexOfSmallest(distanceArray);
         let minDistance = distanceArray[idxSmallest];
         let helperCubes = this.dof.dofHelperGroup.children;
         let focusPoint = helperCubes[idxSmallest];
 
+        this.dof.bokeh_uniforms[ 'focalDepth' ].value = minDistance;
+        this.params.dofController['focalDepth'] = minDistance;
+
+        // Hightlight the helper for focusPoint
         for ( let id in helperCubes ) {
           if (focusPoint == helperCubes[id]) {
             helperCubes[id].scale.set(50, 50, 50);
@@ -281,9 +295,7 @@ class Main extends AbstractApplication {
             helperCubes[id].material.opacity = 0.5;
           }
         }
-
       }
-      // END FINDING CLOSEST POINT
 
     }
 
@@ -300,7 +312,10 @@ class Main extends AbstractApplication {
       this._scene.overrideMaterial = null;
     }
     else {
+      this._renderer.clear();
       this._renderer.render(this._scene, this._camera);
+      this._renderer.clearDepth();
+      this._renderer.render(this.dof.helperScene, this._camera);
     }
 
   }

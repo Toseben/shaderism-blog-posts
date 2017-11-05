@@ -12,6 +12,8 @@ class AbstractApplication {
         this._scene = new THREE.Scene();
 
         this._renderer = new THREE.WebGLRenderer();
+        // For rendering helpers on top in separate scene
+        this._renderer.autoClear = false;
         this._renderer.setPixelRatio( window.devicePixelRatio );
         this._renderer.setSize( window.innerWidth, window.innerHeight );
         document.body.appendChild( this._renderer.domElement );
