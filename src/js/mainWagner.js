@@ -17,9 +17,9 @@ class Main extends AbstractApplication {
       usePostProcessing: false,
       useDoF: true,
       dofController: {
-				autoFocus: false,
+				autoFocus: true,
 				bboxHelper: true,
-				focusHelpers: false,
+				focusHelpers: true,
 
         jsDepthCalculation: false,
 				shaderFocus: false,
@@ -178,7 +178,7 @@ class Main extends AbstractApplication {
     let focusObject = this.sceneObjects;
 
     // Create Box3 object (aka bounding box) around our focusObject
-    let bbox = new THREE.Box3();
+    let bbox = this.dof.bbox = new THREE.Box3();
     bbox.setFromObject( focusObject );
 
     // Create the actual bounding box geometry for sampling and visualising
@@ -201,7 +201,7 @@ class Main extends AbstractApplication {
       0x0000ff,
     ];
 
-    let helperGeo = new THREE.BoxGeometry( 0.1, 0.1, 0.1 );
+    let helperGeo = new THREE.BoxGeometry( 10, 10, 10 );
 
     // Run for every other face (two triangles per quad)
     for ( let id = 0; id < bboxGeo.faces.length / 2; id += 1 ) {
@@ -216,6 +216,59 @@ class Main extends AbstractApplication {
   animate() {
 
     super.animate();
+
+    if (this.params.dofController.autoFocus) {
+      // START FINDING CLOSEST POINT
+      let bbox = this.dof.bbox;
+      let bboxGeo = this.dof.bboxGeo;
+      let minDistance = 0.0;
+
+      if (bbox) {
+        let distanceArray = [];
+        let camPos = this._camera.position;
+
+        // LOOP FACES
+        for ( let id = 0; id < bboxGeo.faces.length; id += 2 ) {
+          let face = bboxGeo.faces[id];
+          let normal = face.normal;
+
+          // FACE CENTROID
+          var vertices = bboxGeo.vertices;
+          var v1 = vertices[ face.a ];
+          var v2 = vertices[ face.b ];
+          var v3 = vertices[ face.c ];
+
+          var facePos = new THREE.Vector3();
+          facePos.x = ( v1.x + v2.x + v3.x ) / 3;
+          facePos.y = ( v1.y + v2.y + v3.y ) / 3;
+          facePos.z = ( v1.z + v2.z + v3.z ) / 3;
+
+          // = X
+          let offsetMult = new THREE.Vector3( Math.abs(normal.x), Math.abs(normal.y), Math.abs(normal.z) );
+          let offset = facePos.multiply( offsetMult );
+          let offsetScalar = offset.x + offset.y + offset.z;
+
+          let camValue = -offsetScalar - (camPos.x * normal.x + camPos.y * normal.y + camPos.z * normal.z);
+          let normalValue = normal.x + normal.y + normal.z;
+          let t = camValue / normalValue;
+          let point = new THREE.Vector3( camPos.x + normal.x * t, camPos.y + normal.y * t, camPos.z + normal.z * t );
+          point.clamp(bbox.min, bbox.max);
+
+          // SET HELPER POS
+          let helperCube = this.dof.dofHelperGroup.children[ id / 2 ];
+          helperCube.position.set( point.x, point.y, point.z );
+          helperCube.visible = this.params.dofController.focusHelpers;
+
+          let distance = helperCube.position.distanceTo(camPos);
+          distanceArray.push(distance);
+        };
+
+        minDistance = Math.min.apply(Math, distanceArray);
+      }
+      // END FINDING CLOSEST POINT
+
+    }
+
 
     if (this.params.usePostProcessing && this.params.useDoF) {
       this._renderer.clear();
